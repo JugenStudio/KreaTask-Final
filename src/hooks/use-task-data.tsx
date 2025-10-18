@@ -3,9 +3,24 @@
 
 import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode, useMemo } from 'react';
 import type { Task, User, LeaderboardEntry, Notification } from '@/lib/types';
-import { initialData } from '@/lib/data'; // Using mock data for now
 import { UserRole } from '@/lib/types';
 import { isEmployee } from '@/lib/roles';
+import { prisma } from '@/lib/db'; // Assuming a server-side action file will handle this
+
+// Server actions to interact with the database
+async function fetchTasksForUser(userId: string, role: UserRole): Promise<Task[]> {
+  // This would be a server action in a real app
+  // For now, this logic is illustrative. The actual fetching will be done in server components or API routes.
+  return [];
+}
+
+async function fetchAllUsers(): Promise<User[]> {
+  return [];
+}
+
+async function fetchNotificationsForUser(userId: string): Promise<Notification[]> {
+  return [];
+}
 
 type DownloadItem = {
   id: number;
@@ -80,24 +95,44 @@ export interface TaskDataContextType {
 export const TaskDataContext = createContext<TaskDataContextType | undefined>(undefined);
 
 export function TaskDataProvider({ children }: { children: ReactNode }) {
-    // --- TEMPORARY MOCK DATA STATE ---
     const [isLoading, setIsLoading] = useState(true);
-    const [allTasks, setAllTasks] = useState<Task[]>(initialData.allTasks);
-    const [users, setUsers] = useState<User[]>(initialData.users);
+    const [allTasks, setAllTasks] = useState<Task[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [currentUserData, setCurrentUserData] = useState<User | null>(null);
-    const [notifications, setNotifications] = useState<Notification[]>(initialData.mockNotifications);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
     
-    // Using a hardcoded mock user for now. In the future this will come from auth.
+    // Using a hardcoded mock user for now. This should be replaced with real auth.
     const mockUserId = 'user-1';
 
     useEffect(() => {
-        // Simulate fetching data
-        const timer = setTimeout(() => {
-            setCurrentUserData(users.find(u => u.id === mockUserId) || null);
-            setIsLoading(false);
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [users]);
+        async function loadData() {
+            setIsLoading(true);
+            try {
+                // In a real app, you would call server actions here that use Prisma
+                // For now, we simulate this with empty data.
+                const fetchedUsers = await fetchAllUsers();
+                setUsers(fetchedUsers);
+
+                const currentUser = fetchedUsers.find(u => u.id === mockUserId) || null;
+                setCurrentUserData(currentUser);
+
+                if (currentUser) {
+                    const [fetchedTasks, fetchedNotifications] = await Promise.all([
+                        fetchTasksForUser(currentUser.id, currentUser.role),
+                        fetchNotificationsForUser(currentUser.id),
+                    ]);
+                    setAllTasks(fetchedTasks);
+                    setNotifications(fetchedNotifications);
+                }
+            } catch (error) {
+                console.error("Failed to load initial data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        loadData();
+    }, []);
 
 
     const [downloadHistory, setDownloadHistory] = useState<DownloadItem[]>([]);
@@ -126,30 +161,37 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     const leaderboardData = useMemo(() => calculateLeaderboard(allTasks, users), [allTasks, users]);
 
     const addTask = useCallback(async (newTaskData: Partial<Task>) => {
+        // This will be replaced with a server action calling prisma.task.create
         setAllTasks(prev => [...prev, newTaskData as Task]);
     }, []);
 
     const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+        // This will be replaced with a server action calling prisma.task.update
         setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
     }, []);
 
     const deleteTask = useCallback(async (taskId: string) => {
+        // This will be replaced with a server action calling prisma.task.delete
         setAllTasks(prev => prev.filter(t => t.id !== taskId));
     }, []);
     
     const updateUserInFirestore = useCallback(async (userId: string, data: Partial<User>) => {
+        // This will be replaced with a server action calling prisma.user.update
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
     }, []);
 
     const deleteUser = useCallback(async (userId: string) => {
+         // This will be replaced with a server action calling prisma.user.delete
         setUsers(prev => prev.filter(u => u.id !== userId));
     }, []);
 
     const addNotification = useCallback(async (newNotificationData: Partial<Notification>) => {
+        // This will be replaced with a server action calling prisma.notification.create
         setNotifications(prev => [newNotificationData as Notification, ...prev]);
     }, []);
     
     const updateNotifications = useCallback(async (notificationsToUpdate: Notification[]) => {
+        // This will be replaced with a server action
         setNotifications(prev => prev.map(n => {
             const updated = notificationsToUpdate.find(u => u.id === n.id);
             return updated || n;
@@ -198,8 +240,8 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
         updateUserInFirestore,
         deleteUser,
         addToDownloadHistory,
-        setAllTasks, // Keep for compatibility
-        setUsers, // Keep for compatibility
+        setAllTasks, 
+        setUsers, 
     }), [
         isLoading, allTasks, users, currentUserData, leaderboardData, notifications, 
         downloadHistory, addTask, updateTask, deleteTask, 

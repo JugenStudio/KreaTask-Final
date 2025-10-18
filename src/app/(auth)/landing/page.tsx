@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,29 +8,18 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import BlurText from '@/components/ui/blur-text';
 import { useEffect } from 'react';
-import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
 export default function LandingPage() {
   const { t } = useLanguage();
-  const { user, isUserLoading } = useUser();
   const router = useRouter();
 
+  // For now, we are using mock data and a mock logged-in user.
+  // This useEffect will redirect to the dashboard as if a user is always logged in.
+  // In a real app with auth, this logic would be in a layout and check for a real user session.
   useEffect(() => {
-    // If user is loaded and exists, redirect to dashboard
-    if (!isUserLoading && user) {
-      router.replace('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
-
-  // While loading, we can show a blank page or a spinner
-  if (isUserLoading || user) {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-            {/* Loading or redirecting... */}
-        </div>
-    );
-  }
+     // router.replace('/dashboard');
+  }, [router]);
 
   return (
     <div className="w-full h-screen flex items-center justify-center">

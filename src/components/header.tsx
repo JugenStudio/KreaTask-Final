@@ -41,8 +41,6 @@ import { useCurrentUser } from "@/app/(app)/layout";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/firebase";
-import { signOut } from "firebase/auth";
 
 export function Header() {
   const { currentUser } = useCurrentUser();
@@ -50,7 +48,6 @@ export function Header() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const isMobile = useIsMobile();
-  const auth = useAuth();
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
@@ -63,12 +60,9 @@ export function Header() {
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push('/'); // Redirect to landing page
-    } catch (error) {
-      console.error("Error signing out: ", error);
-    }
+    // In a real app with Prisma, this would call a server action to clear the session/cookie.
+    console.log("Logging out...");
+    router.push('/landing'); 
   };
 
   if (!currentUser) {

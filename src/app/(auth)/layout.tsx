@@ -5,7 +5,6 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LanguageProvider } from '@/providers/language-provider';
-// import { FirebaseClientProvider } from '@/firebase/client-provider'; // Temporarily disabled
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
@@ -14,7 +13,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   const showBackButton = pathname !== '/landing';
 
   return (
-    // <FirebaseClientProvider> // Temporarily disabled
       <LanguageProvider>
         <div className="min-h-screen w-full flex items-center justify-center bg-background p-4 relative">
           
@@ -34,6 +32,5 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </LanguageProvider>
-    // </FirebaseClientProvider> // Temporarily disabled
   );
 }

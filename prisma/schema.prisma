@@ -3,6 +3,7 @@
 
 generator client {
   provider   = "prisma-client-js"
+  // Use wasm engine to avoid libssl dependency issues
   engineType = "wasm"
 }
 
@@ -18,48 +19,120 @@ model User {
   avatarUrl String?
   role      UserRole @default(Unassigned)
   jabatan   String?
+
+  // Relations
   tasks     Task[]   @relation("TaskAssignees")
+  comments  Comment[]
+  revisions Revision[]
+  notifications Notification[]
+
+  @@map("users")
 }
 
 model Task {
   id            String       @id @default(cuid())
   title         Json
   description   Json
-  status        TaskStatus
-  assignees     User[]       @relation("TaskAssignees")
+  status        TaskStatus   @default(TODO)
   dueDate       DateTime
-  revisions     Json[]
-  comments      Json[]
-  files         Json[]
-  subtasks      Json[]
   createdAt     DateTime     @default(now())
   category      TaskCategory
   valueCategory String
   value         Int
   evaluator     String
   approvedBy    String?
+
+  // Relations
+  assignees     User[]       @relation("TaskAssignees")
+  comments      Comment[]
+  revisions     Revision[]
+  files         File[]
+  subtasks      Subtask[]
+  notifications Notification[]
+
+  @@map("tasks")
+}
+
+model File {
+  id     String @id @default(cuid())
+  name   String
+  type   String
+  url    String
+  size   String
+  note   String?
+  task   Task   @relation(fields: [taskId], references: [id])
+  taskId String
+
+  @@map("files")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  content   Json
+  isPinned  Boolean  @default(false)
+
+  // Relations
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+  task     Task   @relation(fields: [taskId], references: [id])
+  taskId   String
+
+  @@map("comments")
+}
+
+model Revision {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  change    Json
+
+  // Relations
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+  task     Task   @relation(fields: [taskId], references: [id])
+  taskId   String
+
+  @@map("revisions")
+}
+
+model Subtask {
+  id          String  @id @default(cuid())
+  title       String
+  isCompleted Boolean @default(false)
+
+  // Relations
+  task   Task   @relation(fields: [taskId], references: [id])
+  taskId String
+
+  @@map("subtasks")
 }
 
 model Notification {
   id        String   @id @default(cuid())
-  userId    String
   message   String
   type      String
   read      Boolean  @default(false)
   link      String?
-  taskId    String?
   createdAt DateTime @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  task   Task?  @relation(fields: [taskId], references: [id])
+  taskId String?
+
+  @@map("notifications")
 }
 
 enum UserRole {
-  roles_super_admin
-  roles_admin
-  roles_team_leader
-  roles_team_member
-  Social_Media_Officer
-  Desain_Grafis
-  Marketing
-  Finance
+  ADMIN
+  DIREKTUR_UTAMA
+  DIREKTUR_OPERASIONAL
+  JURNALIS
+  SOCIAL_MEDIA_OFFICER
+  DESAIN_GRAFIS
+  MARKETING
+  FINANCE
   Unassigned
 }
 
@@ -71,9 +144,9 @@ enum TaskCategory {
 }
 
 enum TaskStatus {
-  To_do
-  In_Progress
-  In_Review
-  Completed
-  Blocked
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  COMPLETED
+  BLOCKED
 }

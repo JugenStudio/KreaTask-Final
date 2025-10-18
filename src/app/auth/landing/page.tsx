@@ -29,11 +29,12 @@ export default function LandingPage() {
     return () => unsubscribe();
   }, [auth, router]);
 
+
   return (
     <div className="w-full h-screen flex items-center justify-center">
       <div className="relative z-10 flex flex-col items-center text-center p-4">
         <Image
-          src="/sounds/logo2.png"
+          src="/images/logo2.png"
           alt="KreaTask Logo"
           width={80}
           height={80}

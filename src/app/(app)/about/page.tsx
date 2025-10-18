@@ -49,7 +49,7 @@ export default function AboutPage() {
         <CardContent className="p-6 md:p-8">
           <div className="flex flex-col items-center text-center mb-8">
             <Image
-              src="/sounds/logo2.png"
+              src="/images/logo2.png"
               alt="KreaTask Logo"
               width={48}
               height={48}

@@ -41,6 +41,7 @@ import { useCurrentUser } from "@/app/(app)/layout";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuthActions } from "@/hooks/use-auth-actions";
 
 export function Header() {
   const { currentUser } = useCurrentUser();
@@ -49,6 +50,7 @@ export function Header() {
   const [searchTerm, setSearchTerm] = useState("");
   const isMobile = useIsMobile();
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = useState(false);
+  const { signOut } = useAuthActions();
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -60,8 +62,7 @@ export function Header() {
   };
 
   const handleLogout = async () => {
-    // In a real app with Prisma, this would call a server action to clear the session/cookie.
-    console.log("Logging out...");
+    await signOut();
     router.push('/landing'); 
   };
 
@@ -81,7 +82,7 @@ export function Header() {
       <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-4 border-b border-border bg-background/80 px-4 md:px-6 backdrop-blur-lg">
         {isMobile && (
           <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
-            <Image src="/sounds/logo2.png" alt="KreaTask Logo" width={32} height={32} />
+            <Image src="/images/logo2.png" alt="KreaTask Logo" width={32} height={32} />
           </Link>
         )}
 

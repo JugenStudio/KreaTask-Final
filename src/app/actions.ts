@@ -8,13 +8,15 @@ import { getTaskSuggestion } from "@/ai/flows/generate-tasks-flow";
 import { z } from "zod";
 import type { Task, User } from "@/lib/types";
 
-const SummarizeSchema = z.object({
-  commentThread: z.string(),
-});
+// Keep existing AI-related server actions...
+// ...
+
+// This file is now primarily for AI and other non-DB server actions.
+// All database operations have been moved to src/app/actions/db.ts
 
 export async function getSummary(formData: FormData) {
   try {
-    const validatedData = SummarizeSchema.parse({
+    const validatedData = z.object({ commentThread: z.string() }).parse({
       commentThread: formData.get("commentThread"),
     });
 
@@ -34,11 +36,6 @@ export async function getSummary(formData: FormData) {
   }
 }
 
-const KreaBotSchema = z.object({
-  query: z.string(),
-  tasks: z.string(),
-  users: z.string(),
-});
 
 export async function getKreaBotResponse(
   query: string,
@@ -59,17 +56,16 @@ export async function getKreaBotResponse(
   }
 }
 
-// Define Zod schemas for validation
 const TranslateContentInputSchema = z.object({
   text: z.string().describe('The text to be translated.'),
 });
-export type TranslateContentInput = z.infer<typeof TranslateContentInputSchema>;
+type TranslateContentInput = z.infer<typeof TranslateContentInputSchema>;
 
 const TranslateContentOutputSchema = z.object({
   en: z.string().describe('The English translation.'),
   id: z.string().describe('The Indonesian translation.'),
 });
-export type TranslateContentOutput = z.infer<typeof TranslateContentOutputSchema>;
+type TranslateContentOutput = z.infer<typeof TranslateContentOutputSchema>;
 
 
 export async function getTranslations(text: string): Promise<{ data: TranslateContentOutput | null, error: string | null }> {
@@ -86,7 +82,6 @@ export async function getTranslations(text: string): Promise<{ data: TranslateCo
   }
 }
 
-// Re-added for AI Task Suggestion
 export async function getTaskFromAI(idea: string, users: User[]) {
   if (!idea.trim()) {
     return { suggestion: null, error: "Please provide an idea." };
@@ -99,7 +94,10 @@ export async function getTaskFromAI(idea: string, users: User[]) {
     return { suggestion: result, error: null };
   } catch (e: any) {
     console.error("Error getting task from AI:", e);
-    // Return a generic error key to be translated on the client
     return { suggestion: null, error: "submit.toast.ai_error_generic" };
   }
 }
+
+export * from './actions/db';
+
+    

@@ -5,22 +5,18 @@ import React, { useState, useEffect, useCallback, createContext, useContext, Rea
 import type { Task, User, LeaderboardEntry, Notification } from '@/lib/types';
 import { UserRole } from '@/lib/types';
 import { isEmployee } from '@/lib/roles';
-import { prisma } from '@/lib/db'; // Assuming a server-side action file will handle this
-
-// Server actions to interact with the database
-async function fetchTasksForUser(userId: string, role: UserRole): Promise<Task[]> {
-  // This would be a server action in a real app
-  // For now, this logic is illustrative. The actual fetching will be done in server components or API routes.
-  return [];
-}
-
-async function fetchAllUsers(): Promise<User[]> {
-  return [];
-}
-
-async function fetchNotificationsForUser(userId: string): Promise<Notification[]> {
-  return [];
-}
+import {
+    fetchTasksForUser,
+    fetchAllUsers,
+    fetchNotificationsForUser,
+    createTask,
+    updateTask as updateTaskInDb,
+    deleteTask as deleteTaskInDb,
+    updateUser,
+    deleteUser as deleteUserInDb,
+    createNotification,
+    updateNotifications as updateNotificationsInDb,
+} from '@/app/actions/db';
 
 type DownloadItem = {
   id: number;
@@ -108,8 +104,6 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
         async function loadData() {
             setIsLoading(true);
             try {
-                // In a real app, you would call server actions here that use Prisma
-                // For now, we simulate this with empty data.
                 const fetchedUsers = await fetchAllUsers();
                 setUsers(fetchedUsers);
 
@@ -133,7 +127,6 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
 
         loadData();
     }, []);
-
 
     const [downloadHistory, setDownloadHistory] = useState<DownloadItem[]>([]);
     
@@ -161,41 +154,55 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     const leaderboardData = useMemo(() => calculateLeaderboard(allTasks, users), [allTasks, users]);
 
     const addTask = useCallback(async (newTaskData: Partial<Task>) => {
-        // This will be replaced with a server action calling prisma.task.create
-        setAllTasks(prev => [...prev, newTaskData as Task]);
+        const createdTask = await createTask(newTaskData);
+        if (createdTask) {
+            setAllTasks(prev => [...prev, createdTask as Task]);
+        }
     }, []);
 
     const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
-        // This will be replaced with a server action calling prisma.task.update
-        setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+        const updatedTask = await updateTaskInDb(taskId, updates);
+        if (updatedTask) {
+            setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updatedTask } : t));
+        }
     }, []);
 
     const deleteTask = useCallback(async (taskId: string) => {
-        // This will be replaced with a server action calling prisma.task.delete
-        setAllTasks(prev => prev.filter(t => t.id !== taskId));
+        const result = await deleteTaskInDb(taskId);
+        if (result.success) {
+            setAllTasks(prev => prev.filter(t => t.id !== taskId));
+        }
     }, []);
     
     const updateUserInFirestore = useCallback(async (userId: string, data: Partial<User>) => {
-        // This will be replaced with a server action calling prisma.user.update
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+        const updatedUser = await updateUser(userId, data);
+        if (updatedUser) {
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updatedUser } : u));
+        }
     }, []);
 
     const deleteUser = useCallback(async (userId: string) => {
-         // This will be replaced with a server action calling prisma.user.delete
-        setUsers(prev => prev.filter(u => u.id !== userId));
+        const result = await deleteUserInDb(userId);
+        if (result.success) {
+            setUsers(prev => prev.filter(u => u.id !== userId));
+        }
     }, []);
 
     const addNotification = useCallback(async (newNotificationData: Partial<Notification>) => {
-        // This will be replaced with a server action calling prisma.notification.create
-        setNotifications(prev => [newNotificationData as Notification, ...prev]);
+        const createdNotification = await createNotification(newNotificationData);
+        if (createdNotification) {
+            setNotifications(prev => [createdNotification as Notification, ...prev]);
+        }
     }, []);
     
     const updateNotifications = useCallback(async (notificationsToUpdate: Notification[]) => {
-        // This will be replaced with a server action
-        setNotifications(prev => prev.map(n => {
-            const updated = notificationsToUpdate.find(u => u.id === n.id);
-            return updated || n;
-        }));
+        const result = await updateNotificationsInDb(notificationsToUpdate.map(n => n.id));
+        if (result.success) {
+             setNotifications(prev => prev.map(n => {
+                const updated = notificationsToUpdate.find(u => u.id === n.id);
+                return updated ? { ...n, read: true } : n;
+            }));
+        }
     }, []);
 
     const addToDownloadHistory = useCallback((file: { name: string; size: string, url: string }, taskName: string, isRedownload = false) => {
@@ -220,7 +227,6 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
         return [newDownloadItem, ...prevHistory];
       });
     }, []);
-    
 
     const value: TaskDataContextType = useMemo(() => ({
         isLoading,
@@ -262,3 +268,5 @@ export const useTaskData = () => {
     }
     return context;
 };
+
+    

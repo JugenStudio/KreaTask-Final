@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,19 +8,19 @@ import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock, User as UserIcon, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
-// import { useAuth, useFirestore } from '@/firebase'; // Temporarily disabled
-// import { 
-//     createUserWithEmailAndPassword, 
-//     updateProfile, 
-//     GoogleAuthProvider, 
-//     signInWithPopup,
-//     fetchSignInMethodsForEmail 
-// } from 'firebase/auth';
+import { useAuth, useFirestore } from '@/hooks/use-auth-actions-server';
+import { 
+    createUserWithEmailAndPassword, 
+    updateProfile, 
+    GoogleAuthProvider, 
+    signInWithPopup,
+    fetchSignInMethodsForEmail 
+} from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { useLanguage } from '@/providers/language-provider';
-// import { ensureUserDoc } from '@/lib/ensureUserDoc'; // Temporarily disabled
+import { ensureUserDoc } from '@/lib/ensureUserDoc';
 
 const signupSchema = z.object({
     name: z.string().min(1, "Nama lengkap diperlukan"),
@@ -33,8 +34,8 @@ const signupSchema = z.object({
 
 export default function SignUpPage() {
   const router = useRouter();
-  // const auth = useAuth(); // Temporarily disabled
-  // const firestore = useFirestore(); // Temporarily disabled
+  const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -51,10 +52,10 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    // if (!auth || !firestore) { // Temporarily disabled
-    //   setErrors({ form: "Layanan autentikasi atau database tidak tersedia." });
-    //   return;
-    // }
+    if (!auth || !firestore) {
+      setErrors({ form: "Layanan autentikasi atau database tidak tersedia." });
+      return;
+    }
 
     const validation = signupSchema.safeParse({ name, email, password, confirmPassword });
 
@@ -71,23 +72,20 @@ export default function SignUpPage() {
     setErrors({});
 
     try {
-      // const methods = await fetchSignInMethodsForEmail(auth, email); // Temporarily disabled
-      // if (methods.length > 0) { // Temporarily disabled
-      //   throw { code: 'auth/email-already-in-use' };
-      // }
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (methods.length > 0) {
+        throw { code: 'auth/email-already-in-use' };
+      }
 
-      // const userCredential = await createUserWithEmailAndPassword(auth, email, password); // Temporarily disabled
-      // const firebaseUser = userCredential.user; // Temporarily disabled
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-      // await updateProfile(firebaseUser, { // Temporarily disabled
-      //   displayName: name,
-      //   photoURL: `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
-      // });
+      await updateProfile(firebaseUser, {
+        displayName: name,
+        photoURL: `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
+      });
 
-      // await ensureUserDoc(firestore, firebaseUser); // Temporarily disabled
-
-      console.log("Signing up with", name, email, password);
-      await new Promise(res => setTimeout(res, 1000));
+      await ensureUserDoc(firestore, firebaseUser);
       
       toast({
         title: "Pendaftaran Berhasil",
@@ -98,9 +96,9 @@ export default function SignUpPage() {
 
     } catch (firebaseError: any) {
       let errorMessage = "Gagal mendaftar. Silakan coba lagi.";
-      // if (firebaseError.code === 'auth/email-already-in-use') { // Temporarily disabled
-      //   errorMessage = 'Email ini sudah digunakan oleh akun lain.';
-      // }
+      if (firebaseError.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email ini sudah digunakan oleh akun lain.';
+      }
       setErrors({ form: errorMessage });
       toast({
         variant: "destructive",
@@ -113,70 +111,66 @@ export default function SignUpPage() {
   };
 
   const handleGoogleSignUp = () => {
-    // if (!auth || !firestore) return; // Temporarily disabled
+    if (!auth || !firestore) return;
     
     setIsGoogleLoading(true);
-    // const provider = new GoogleAuthProvider(); // Temporarily disabled
-    // provider.setCustomParameters({ // Temporarily disabled
-    //     prompt: 'select_account'
-    // });
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+        prompt: 'select_account'
+    });
 
-    // signInWithPopup(auth, provider) // Temporarily disabled
-    new Promise(res => setTimeout(res, 1500))
+    signInWithPopup(auth, provider)
       .then(async (result) => {
-        // const user = result.user; // Temporarily disabled
-        // const userEmail = user.email; // Temporarily disabled
-        const mockUser = { displayName: 'Mock User' };
+        const user = result.user;
+        const userEmail = user.email;
 
-        // if (!userEmail) { // Temporarily disabled
-        //   throw new Error("Akun Google tidak memiliki email.");
-        // }
+        if (!userEmail) {
+          throw new Error("Akun Google tidak memiliki email.");
+        }
 
-        // const methods = await fetchSignInMethodsForEmail(auth, userEmail); // Temporarily disabled
-        // if (methods.length > 0) { // Temporarily disabled
-        //   toast({
-        //     variant: "destructive",
-        //     title: "Akun Sudah Terdaftar",
-        //     description: "Email ini sudah terdaftar. Silakan masuk menggunakan tombol Masuk.",
-        //   });
-        //   setIsGoogleLoading(false);
-        //   await auth.signOut(); // Temporarily disabled
-        //   return;
-        // }
+        const methods = await fetchSignInMethodsForEmail(auth, userEmail);
+        if (methods.length > 0) {
+          toast({
+            variant: "destructive",
+            title: "Akun Sudah Terdaftar",
+            description: "Email ini sudah terdaftar. Silakan masuk menggunakan tombol Masuk.",
+          });
+          setIsGoogleLoading(false);
+          await auth.signOut();
+          return;
+        }
 
-        // await ensureUserDoc(firestore, user); // Temporarily disabled
+        await ensureUserDoc(firestore, user);
 
         toast({
             title: t('signup.google_success_title'),
-            description: t('signup.google_success_desc', { name: mockUser.displayName || 'User' }),
+            description: t('signup.google_success_desc', { name: user.displayName || 'User' }),
         });
         
         router.push('/dashboard');
-
       })
       .catch((error: any) => {
-        // if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') { // Temporarily disabled
-        //   console.log("Proses daftar Google dibatalkan oleh pengguna.");
-        // } else if (error.code === 'auth/popup-blocked') { // Temporarily disabled
-        //   toast({
-        //     variant: "destructive",
-        //     title: "Popup Diblokir",
-        //     description: "Browser Anda memblokir popup login. Harap izinkan popup untuk situs ini dan coba lagi.",
-        //   });
-        // } else {
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+          console.log("Proses daftar Google dibatalkan oleh pengguna.");
+        } else if (error.code === 'auth/popup-blocked') {
+          toast({
+            variant: "destructive",
+            title: "Popup Diblokir",
+            description: "Browser Anda memblokir popup login. Harap izinkan popup untuk situs ini dan coba lagi.",
+          });
+        } else {
             console.error("Google sign-up error:", error);
             toast({
                 variant: "destructive",
                 title: "Pendaftaran Google Gagal",
                 description: error.message || "Terjadi kesalahan saat mendaftar dengan Google.",
             });
-        // }
+        }
       })
       .finally(() => {
         setIsGoogleLoading(false);
       });
   };
-
 
   return (
     <div className="w-full max-w-sm mx-auto flex flex-col items-center">
@@ -301,3 +295,5 @@ export default function SignUpPage() {
     </div>
   );
 }
+
+    

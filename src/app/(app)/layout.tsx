@@ -28,11 +28,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   
   const currentUser = currentUserData;
 
-
-  if (pathname.startsWith('/signin') || pathname.startsWith('/signup')) {
-      return <>{children}</>
-  }
-  
   // The main loading state now only depends on the user loading process
   const isLoading = isTaskDataLoading;
 
@@ -64,6 +59,22 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
     )
   }
+
+  // If there's no user and it's not loading, redirect to landing
+  if (!currentUser && !isLoading) {
+    // This can be a simple redirect component or a direct router.push
+    // For simplicity, we use a client-side redirect.
+    // In a real app, middleware would be a better choice.
+    if (typeof window !== 'undefined') {
+        window.location.href = '/landing';
+    }
+    return (
+        <div className="flex min-h-screen w-full bg-background items-center justify-center">
+            <p>Redirecting...</p>
+        </div>
+    );
+  }
+
 
   return (
       <UserContext.Provider value={{ currentUser }}>
@@ -106,3 +117,5 @@ export const useCurrentUser = () => {
   }
   return context;
 };
+
+    

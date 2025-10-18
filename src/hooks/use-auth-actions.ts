@@ -2,74 +2,69 @@
 "use client";
 
 import { useCallback } from 'react';
-import { useAuth, useFirestore } from '@/firebase';
-import { 
-  updateProfile, 
-  updateEmail, 
-  reauthenticateWithCredential, 
-  EmailAuthProvider, 
-  updatePassword 
-} from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// import { useAuth, useFirestore } from '@/firebase'; // Temporarily disabled
+// import { 
+//   updateProfile, 
+//   updateEmail, 
+//   reauthenticateWithCredential, 
+//   EmailAuthProvider, 
+//   updatePassword 
+// } from 'firebase/auth';
+// import { doc, updateDoc } from 'firebase/firestore';
+// import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useTaskData } from './use-task-data';
+import type { User } from '@/lib/types';
+
 
 export function useAuthActions() {
-  const auth = useAuth();
-  const firestore = useFirestore();
-  const { updateUserInFirestore } = useTaskData();
+  // const auth = useAuth(); // Temporarily disabled
+  // const firestore = useFirestore(); // Temporarily disabled
+  const { updateUserInFirestore, users, currentUserData } = useTaskData();
 
   const updateUserProfile = useCallback(async (userId: string, data: { name?: string; email?: string; avatarUrl?: string }) => {
-    if (!auth.currentUser) throw new Error("Pengguna tidak terautentikasi.");
+    if (!currentUserData) throw new Error("Pengguna tidak terautentikasi.");
     
-    // Update Firebase Auth Profile
-    await updateProfile(auth.currentUser, {
-      displayName: data.name,
-      photoURL: data.avatarUrl,
-    });
+    // Mock updating profile
+    // await updateProfile(auth.currentUser, { // Temporarily disabled
+    //   displayName: data.name,
+    //   photoURL: data.avatarUrl,
+    // });
 
-    // Update Firestore document
+    // Update "Firestore" (mock state)
     await updateUserInFirestore(userId, data);
 
-  }, [auth, updateUserInFirestore]);
+  }, [currentUserData, updateUserInFirestore]);
 
   const updateUserEmail = useCallback(async (newEmail: string) => {
-    if (!auth.currentUser) throw new Error("Pengguna tidak terautentikasi.");
+    if (!currentUserData) throw new Error("Pengguna tidak terautentikasi.");
     
-    // This is a sensitive operation and may require re-authentication in a real app
-    await updateEmail(auth.currentUser, newEmail);
-  }, [auth]);
+    // Mock updating email
+    // await updateEmail(auth.currentUser, newEmail); // Temporarily disabled
+    console.log(`Email updated to ${newEmail}`);
+  }, [currentUserData]);
 
   const changeUserPassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    if (!auth.currentUser || !auth.currentUser.email) throw new Error("Pengguna tidak terautentikasi atau tidak memiliki email.");
+    if (!currentUserData || !currentUserData.email) throw new Error("Pengguna tidak terautentikasi atau tidak memiliki email.");
     
-    const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
-    
-    // Re-authenticate the user
-    await reauthenticateWithCredential(auth.currentUser, credential);
-    
-    // Now change the password
-    await updatePassword(auth.currentUser, newPassword);
+    // Mock changing password
+    // const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword); // Temporarily disabled
+    // await reauthenticateWithCredential(auth.currentUser, credential); // Temporarily disabled
+    // await updatePassword(auth.currentUser, newPassword); // Temporarily disabled
+    console.log('Password changed successfully');
 
-  }, [auth]);
+  }, [currentUserData]);
 
   const uploadProfilePicture = useCallback(async (file: File) => {
-    if (!auth.currentUser) throw new Error("Pengguna tidak terautentikasi.");
+    if (!currentUserData) throw new Error("Pengguna tidak terautentikasi.");
 
-    const storage = getStorage();
-    const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/${file.name}`);
-
-    // Upload file
-    const snapshot = await uploadBytes(storageRef, file);
-    
-    // Get download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
+    // Mock uploading profile picture
+    const downloadURL = URL.createObjectURL(file);
 
     // Update user profile
-    await updateUserProfile(auth.currentUser.uid, { avatarUrl: downloadURL });
+    await updateUserProfile(currentUserData.id, { avatarUrl: downloadURL });
 
     return downloadURL;
-  }, [auth, updateUserProfile]);
+  }, [currentUserData, updateUserProfile]);
 
 
   return {

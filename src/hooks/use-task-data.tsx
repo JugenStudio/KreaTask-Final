@@ -1,14 +1,11 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode, useMemo } from 'react';
 import type { Task, User, LeaderboardEntry, Notification } from '@/lib/types';
-import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, where, query, getDocs, writeBatch } from 'firebase/firestore';
-import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { useUser } from '@/firebase/provider';
+import { initialData } from '@/lib/data'; // Using mock data for now
 import { UserRole } from '@/lib/types';
-import { isDirector, isEmployee } from '@/lib/roles';
+import { isEmployee } from '@/lib/roles';
 
 type DownloadItem = {
   id: number;
@@ -83,60 +80,25 @@ export interface TaskDataContextType {
 export const TaskDataContext = createContext<TaskDataContextType | undefined>(undefined);
 
 export function TaskDataProvider({ children }: { children: ReactNode }) {
-    const firestore = useFirestore();
-    const { user, isUserLoading } = useUser();
+    // --- TEMPORARY MOCK DATA STATE ---
+    const [isLoading, setIsLoading] = useState(true);
+    const [allTasks, setAllTasks] = useState<Task[]>(initialData.allTasks);
+    const [users, setUsers] = useState<User[]>(initialData.users);
+    const [currentUserData, setCurrentUserData] = useState<User | null>(null);
+    const [notifications, setNotifications] = useState<Notification[]>(initialData.mockNotifications);
     
-    const currentUserDocRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
-    const { data: currentUserData, isLoading: isCurrentUserLoading } = useDoc<User>(currentUserDocRef);
-    
-    const allUsersCollectionRef = useMemoFirebase(() => {
-        if (!firestore || !currentUserData || isEmployee(currentUserData.role)) {
-            return null;
-        }
-        return collection(firestore, 'users');
-    }, [firestore, currentUserData]);
-
-    const { data: allUsersFromDB, isLoading: isAllUsersLoading } = useCollection<User>(allUsersCollectionRef);
-    
-    const users = useMemo(() => {
-        const userMap = new Map<string, User>();
-        if (currentUserData) {
-            userMap.set(currentUserData.id, currentUserData);
-        }
-        if (allUsersFromDB) {
-            allUsersFromDB.forEach(user => userMap.set(user.id, user));
-        }
-        return Array.from(userMap.values());
-    }, [allUsersFromDB, currentUserData]);
-
-
-    const tasksCollectionRef = useMemoFirebase(() => {
-        if (!firestore || isUserLoading || isCurrentUserLoading) return null;
-        if (!currentUserData) return null;
-
-        if (isEmployee(currentUserData.role)) {
-            return query(collection(firestore, 'tasks'), where('assignees', 'array-contains', { id: currentUserData.id, name: currentUserData.name, avatarUrl: currentUserData.avatarUrl, role: currentUserData.role, jabatan: currentUserData.jabatan }));
-        }
-
-        return collection(firestore, 'tasks');
-    }, [firestore, isUserLoading, isCurrentUserLoading, currentUserData]);
-
-    const { data: tasksData, isLoading: isTasksDataLoading } = useCollection<Task>(tasksCollectionRef);
-    const allTasks = useMemo(() => tasksData || [], [tasksData]);
-    
-    const notificationsCollectionRef = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return query(collection(firestore, 'notifications'), where("userId", "==", user.uid));
-    }, [firestore, user]);
-    const { data: notificationsDataFromDB, isLoading: isNotifsLoading } = useCollection<Notification>(notificationsCollectionRef);
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+    // Using a hardcoded mock user for now. In the future this will come from auth.
+    const mockUserId = 'user-1';
 
     useEffect(() => {
-        if (notificationsDataFromDB) {
-            setNotifications(notificationsDataFromDB);
-        }
-    }, [notificationsDataFromDB]);
-    
+        // Simulate fetching data
+        const timer = setTimeout(() => {
+            setCurrentUserData(users.find(u => u.id === mockUserId) || null);
+            setIsLoading(false);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [users]);
+
 
     const [downloadHistory, setDownloadHistory] = useState<DownloadItem[]>([]);
     
@@ -164,71 +126,35 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     const leaderboardData = useMemo(() => calculateLeaderboard(allTasks, users), [allTasks, users]);
 
     const addTask = useCallback(async (newTaskData: Partial<Task>) => {
-        if (!firestore || !user) return;
-        const assignees = (newTaskData.assignees || []).map(a => typeof a === 'string' ? users.find(u => u.id === a) : a).filter(Boolean);
-        const docWithAssigneeUids = { ...newTaskData, assignees };
-        await addDoc(collection(firestore, 'tasks'), docWithAssigneeUids);
-    }, [firestore, user, users]);
+        setAllTasks(prev => [...prev, newTaskData as Task]);
+    }, []);
 
     const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
-        if (!firestore || !user) return;
-        const taskRef = doc(firestore, 'tasks', taskId);
-        const updatePayload: Partial<Task> = { ...updates };
-         if (updates.assignees) {
-            updatePayload.assignees = updates.assignees.map(a => {
-                if (typeof a === 'string') {
-                    const foundUser = users.find(u=>u.id === a);
-                    return foundUser ? { id: foundUser.id, name: foundUser.name, avatarUrl: foundUser.avatarUrl, role: foundUser.role, jabatan: foundUser.jabatan } : null;
-                }
-                return a;
-            }).filter(Boolean) as User[];
-        }
-        await updateDoc(taskRef, updatePayload as any);
-    }, [firestore, user, users]);
+        setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+    }, []);
 
     const deleteTask = useCallback(async (taskId: string) => {
-        if (!firestore || !user) return;
-        await deleteDoc(doc(firestore, 'tasks', taskId));
-    }, [firestore, user]);
+        setAllTasks(prev => prev.filter(t => t.id !== taskId));
+    }, []);
     
     const updateUserInFirestore = useCallback(async (userId: string, data: Partial<User>) => {
-        if (!firestore) return;
-        const userRef = doc(firestore, 'users', userId);
-        await updateDoc(userRef, data);
-    }, [firestore]);
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+    }, []);
 
     const deleteUser = useCallback(async (userId: string) => {
-        if (!firestore) return;
-        await deleteDoc(doc(firestore, 'users', userId));
-    }, [firestore]);
+        setUsers(prev => prev.filter(u => u.id !== userId));
+    }, []);
 
     const addNotification = useCallback(async (newNotificationData: Partial<Notification>) => {
-        if (!firestore) return;
-        const newNotif = {
-            id: `notif-${Date.now()}`,
-            read: false,
-            createdAt: new Date().toISOString(),
-            ...newNotificationData
-        };
-        const notifRef = doc(collection(firestore, 'notifications'), newNotif.id);
-        await setDoc(notifRef, newNotif);
-    }, [firestore]);
+        setNotifications(prev => [newNotificationData as Notification, ...prev]);
+    }, []);
     
     const updateNotifications = useCallback(async (notificationsToUpdate: Notification[]) => {
-        if (!firestore) return;
-        const batch = writeBatch(firestore);
-
-        notificationsToUpdate.forEach(notif => {
-            const notifRef = doc(firestore, 'notifications', notif.id);
-            batch.update(notifRef, { read: notif.read });
-        });
-
-        await batch.commit();
         setNotifications(prev => prev.map(n => {
             const updated = notificationsToUpdate.find(u => u.id === n.id);
             return updated || n;
         }));
-    }, [firestore]);
+    }, []);
 
     const addToDownloadHistory = useCallback((file: { name: string; size: string, url: string }, taskName: string, isRedownload = false) => {
       const newDownloadItem: DownloadItem = {
@@ -253,16 +179,9 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       });
     }, []);
     
-    const setAllTasks = (newTasks: Task[]) => {
-      console.warn("setAllTasks is a no-op with a real-time Firestore backend.");
-    };
-
-    const setUsers = (newUsers: User[]) => {
-      console.warn("setUsers is a no-op with a real-time Firestore backend.");
-    };
 
     const value: TaskDataContextType = useMemo(() => ({
-        isLoading: isUserLoading || isTasksDataLoading || isNotifsLoading || isCurrentUserLoading || isAllUsersLoading,
+        isLoading,
         allTasks,
         users,
         currentUserData,
@@ -279,11 +198,10 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
         updateUserInFirestore,
         deleteUser,
         addToDownloadHistory,
-        setAllTasks,
-        setUsers,
+        setAllTasks, // Keep for compatibility
+        setUsers, // Keep for compatibility
     }), [
-        isUserLoading, isTasksDataLoading, isNotifsLoading, isCurrentUserLoading, isAllUsersLoading,
-        allTasks, users, currentUserData, leaderboardData, notifications, 
+        isLoading, allTasks, users, currentUserData, leaderboardData, notifications, 
         downloadHistory, addTask, updateTask, deleteTask, 
         addNotification, updateUserInFirestore, deleteUser, addToDownloadHistory, updateNotifications
     ]);

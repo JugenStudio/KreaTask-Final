@@ -5,11 +5,11 @@ export enum UserRole {
   DIREKTUR_UTAMA = "roles_admin",
   DIREKTUR_OPERASIONAL = "roles_team_leader",
   JURNALIS = "roles_team_member",
-  SOCIAL_MEDIA_OFFICER = "Social Media Officer", // Keeping as is if not in seed script
-  DESAIN_GRAFIS = "Desain Grafis",             // Keeping as is if not in seed script
-  MARKETING = "Marketing",                       // Keeping as is if not in seed script
-  FINANCE = "Finance",                           // Keeping as is if not in seed script
-  UNASSIGNED = "Unassigned",                     // Keeping as is if not in seed script
+  SOCIAL_MEDIA_OFFICER = "Social_Media_Officer",
+  DESAIN_GRAFIS = "Desain_Grafis",
+  MARKETING = "Marketing",
+  FINANCE = "Finance",
+  UNASSIGNED = "Unassigned",
 }
 
 export enum TaskCategory {
@@ -19,7 +19,13 @@ export enum TaskCategory {
   Critical = 'Critical',
 }
 
-export type TaskStatus = 'To-do' | 'In Progress' | 'In Review' | 'Completed' | 'Blocked';
+export enum TaskStatus {
+    TODO = "To-do",
+    IN_PROGRESS = "In Progress",
+    IN_REVIEW = "In Review",
+    COMPLETED = "Completed",
+    BLOCKED = "Blocked"
+}
 
 export type LocalizedString = {
   en: string;

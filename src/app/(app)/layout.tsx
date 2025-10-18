@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BottomNav } from "@/components/bottom-nav";
 import { TaskDataProvider, useTaskData } from "@/hooks/use-task-data.tsx";
 import { useSpotlightEffect } from "@/hooks/use-spotlight";
-import { FirebaseClientProvider } from "@/firebase/client-provider";
+// import { FirebaseClientProvider } from "@/firebase/client-provider"; // Temporarily disabled
 
 // 1. Create the context
 const UserContext = createContext<{ currentUser: User | null }>({
@@ -91,13 +91,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
   
   return (
-    <FirebaseClientProvider>
+    // <FirebaseClientProvider> // Temporarily disabled
       <LanguageProvider>
         <TaskDataProvider>
           <AppLayoutContent>{children}</AppLayoutContent>
         </TaskDataProvider>
       </LanguageProvider>
-    </FirebaseClientProvider>
+    // </FirebaseClientProvider> // Temporarily disabled
   );
 }
 

@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  avatarUrl String?
+  role      UserRole @default(Unassigned)
+  jabatan   String?
+  tasks     Task[]
+}
+
+model Task {
+  id            String       @id @default(cuid())
+  titleEn       String
+  titleId       String
+  descriptionEn String?
+  descriptionId String?
+  status        String
+  dueDate       DateTime
+  createdAt     DateTime     @default(now())
+  category      String
+  value         Int
+  valueCategory String
+  evaluator     String
+  approvedBy    String?
+  assignees     User[]
+  revisions     Revision[]
+  comments      Comment[]
+  files         FileAsset[]
+}
+
+model Revision {
+  id        String   @id @default(cuid())
+  timestamp DateTime
+  authorId  String
+  changeEn  String
+  changeId  String
+  task      Task     @relation(fields: [taskId], references: [id])
+  taskId    String
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  timestamp  DateTime
+  authorId   String
+  contentEn  String
+  contentId  String
+  isPinned   Boolean
+  task       Task     @relation(fields: [taskId], references: [id])
+  taskId     String
+}
+
+model FileAsset {
+  id      String  @id @default(cuid())
+  name    String
+  type    String
+  url     String
+  size    String
+  note    String?
+  task    Task    @relation(fields: [taskId], references: [id])
+  taskId  String
+}
+
+enum UserRole {
+  roles_super_admin
+  roles_admin
+  roles_team_leader
+  roles_team_member
+  Social_Media_Officer
+  Desain_Grafis
+  Marketing
+  Finance
+  Unassigned
+}

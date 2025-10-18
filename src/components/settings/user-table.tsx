@@ -37,25 +37,22 @@ import { Trash2 } from "lucide-react";
 import { useLanguage } from "@/providers/language-provider";
 import { Card, CardContent } from "../ui/card";
 import { useTaskData } from "@/hooks/use-task-data";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
 import { Skeleton } from "../ui/skeleton";
 
 const roles: UserRole[] = Object.values(UserRole);
 
 interface UserTableProps {
+  initialUsers: User[];
   currentUser: User;
+  setUsers: (users: User[]) => void;
 }
 
-export function UserTable({ currentUser }: UserTableProps) {
+export function UserTable({ initialUsers, currentUser, setUsers }: UserTableProps) {
   const { toast } = useToast();
   const { t } = useLanguage();
-  const { updateUserInFirestore, deleteUser } = useTaskData();
+  const { updateUserInFirestore, deleteUser, users, isLoading } = useTaskData();
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  const firestore = useFirestore();
-  const usersCollectionRef = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
-  const { data: users, isLoading } = useCollection<User>(usersCollectionRef);
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     await updateUserInFirestore(userId, { role: newRole });

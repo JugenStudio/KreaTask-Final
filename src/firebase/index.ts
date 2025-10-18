@@ -1,6 +1,6 @@
-'use client';
+// 'use client'; // This file can be universal, no need for client directive
 
-import { firebaseConfig } from '@/firebase/config';
+// import { firebaseConfig } from '@/firebase/config'; // Config is now handled by SDK
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
@@ -14,21 +14,16 @@ export function initializeFirebase() {
   
   // When running in a production environment (deployed), Firebase App Hosting
   // provides environment variables that `initializeApp()` can use automatically.
-  if (process.env.NODE_ENV === 'production') {
-    try {
-      const firebaseApp = initializeApp();
-      return getSdks(firebaseApp);
-    } catch (e) {
-      console.error("Automatic Firebase initialization failed in production, falling back to config object.", e);
-      // Fallback to config object if auto-init fails even in production
-      const firebaseApp = initializeApp(firebaseConfig);
-      return getSdks(firebaseApp);
-    }
-  } else {
-    // In development, always initialize with the provided config object.
-    const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
-  }
+  // In development, you should use a .env.local file to set these variables.
+  const firebaseApp = initializeApp({
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  });
+  return getSdks(firebaseApp);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {

@@ -32,22 +32,6 @@ export async function ensureUserDoc(
     };
 
     await setDoc(userRef, newUser);
-
-    // Opsi: Tunggu hingga dokumen benar-benar dapat dibaca untuk menghindari race condition
-    // Pada praktiknya, setDoc yang di-await biasanya sudah cukup, tetapi ini adalah pengaman tambahan.
-    let ready = false;
-    for (let i = 0; i < 5; i++) {
-      const check = await getDoc(userRef);
-      if (check.exists()) {
-        ready = true;
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 200)); // Sedikit penundaan antar percobaan
-    }
-
-    if (!ready) {
-        console.warn("Peringatan: Dokumen pengguna belum terbaca setelah dibuat, tetapi proses login tetap dilanjutkan.");
-    }
   }
 
   return userRef;

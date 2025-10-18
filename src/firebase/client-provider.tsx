@@ -1,4 +1,4 @@
-'use client';
+// 'use client'; // This component is effectively client-side, but the directive is not needed at this level.
 
 import React, { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';

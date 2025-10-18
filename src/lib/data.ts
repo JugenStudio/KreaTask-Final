@@ -1,10 +1,9 @@
 
 import type { User, Task } from './types';
-import { UserRole } from './types';
+import { UserRole, TaskCategory, TaskStatus } from './types';
 
-// NOTE: This file is now used only for seeding data for the first time.
-// The primary source of truth for application data is Firebase Firestore.
-// The useTaskData hook is responsible for fetching and managing live data.
+// NOTE: This file is now used only for seeding data for the first time via `prisma/seed.ts`.
+// The application itself fetches live data from the database.
 
 const getAvatarUrl = (seed: number) => `https://picsum.photos/seed/${seed}/100/100`;
 
@@ -19,12 +18,41 @@ export const initialUsers: User[] = [
   { id: 'user-11', name: 'Budi', email: 'budi@kreatask.com', avatarUrl: getAvatarUrl(11), role: UserRole.UNASSIGNED, jabatan: 'Unassigned' },
 ];
 
-// This data is for fallback or initial seeding only.
-export const initialTasks: Task[] = [];
-
-// The initialData export is now primarily for seeding.
-export const initialData = {
-    users: initialUsers,
-    allTasks: initialTasks,
-    mockNotifications: [],
-}
+export const initialTasks = [
+    {
+        id: 'task-1',
+        title: { en: 'Create monthly social media report', id: 'Buat laporan media sosial bulanan' },
+        description: { en: 'Compile and analyze social media performance for October.', id: 'Kompilasi dan analisis kinerja media sosial untuk bulan Oktober.' },
+        status: TaskStatus.IN_PROGRESS,
+        assignees: [initialUsers[3]],
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(),
+        revisions: [],
+        comments: [],
+        files: [],
+        subtasks: [],
+        createdAt: new Date().toISOString(),
+        category: TaskCategory.High,
+        valueCategory: 'Tinggi',
+        value: 40,
+        evaluator: 'AI',
+        approvedBy: null,
+    },
+    {
+        id: 'task-2',
+        title: { en: 'Design new branding assets', id: 'Rancang aset branding baru' },
+        description: { en: 'Develop a new set of branding guidelines and assets.', id: 'Kembangkan set baru pedoman dan aset branding.' },
+        status: TaskStatus.TODO,
+        assignees: [initialUsers[4]],
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 14)).toISOString(),
+        revisions: [],
+        comments: [],
+        files: [],
+        subtasks: [],
+        createdAt: new Date().toISOString(),
+        category: TaskCategory.Medium,
+        valueCategory: 'Menengah',
+        value: 20,
+        evaluator: 'AI',
+        approvedBy: null,
+    },
+];

@@ -116,7 +116,7 @@ export function TaskTable({ tasks, currentUser, onEdit }: TaskTableProps) {
           </TableHeader>
           <TableBody>
             {tasks.map((task) => (
-              <TableRow key={task.id}>
+              <TableRow key={task.id} className="hover:bg-muted/50 transition-colors">
                 <TableCell className="font-medium">
                   <Link href={`/tasks/${task.id}`} className="hover:underline break-words transition-all active:scale-95">
                     {task.title[locale]}
@@ -176,8 +176,8 @@ export function TaskTable({ tasks, currentUser, onEdit }: TaskTableProps) {
 
       {/* Mobile View */}
       <div className="block md:hidden space-y-3">
-          {tasks.map((task, index) => (
-              <Card key={task.id} className="card-spotlight transition-all active:scale-95 rounded-xl">
+          {tasks.map((task) => (
+              <Card key={task.id} className="card-spotlight border border-transparent hover:border-primary/50 transition-all active:scale-95 rounded-xl">
                   <CardContent className="p-3">
                       <div className="flex justify-between items-start gap-3">
                           <Link href={`/tasks/${task.id}`} className="flex-1 pr-2">

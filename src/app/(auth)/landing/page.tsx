@@ -9,17 +9,26 @@ import { cn } from '@/lib/utils';
 import BlurText from '@/components/ui/blur-text';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase/client-provider';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function LandingPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const auth = useAuth();
 
-  // For now, we are using mock data and a mock logged-in user.
-  // This useEffect will redirect to the dashboard as if a user is always logged in.
-  // In a real app with auth, this logic would be in a layout and check for a real user session.
   useEffect(() => {
-     // router.replace('/dashboard');
-  }, [router]);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // If user is logged in, redirect to dashboard
+        router.replace('/dashboard');
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [auth, router]);
+
 
   return (
     <div className="w-full h-screen flex items-center justify-center">

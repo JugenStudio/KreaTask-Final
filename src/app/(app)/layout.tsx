@@ -6,7 +6,7 @@ import { Header } from "@/components/header";
 import { LanguageProvider } from "@/providers/language-provider";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, createContext, useContext, ReactNode } from "react";
 import type { User } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,13 +23,22 @@ const UserContext = createContext<{ currentUser: User | null }>({
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { currentUserData, isLoading: isTaskDataLoading } = useTaskData();
   const isMobile = useIsMobile();
+  const router = useRouter();
   useSpotlightEffect();
   
   const currentUser = currentUserData;
 
   const isLoading = isTaskDataLoading;
 
-  if (isLoading) {
+  useEffect(() => {
+    // If loading is finished and there's no user, redirect to landing page.
+    // This is the centralized redirect logic.
+    if (!isLoading && !currentUser) {
+      router.replace('/landing');
+    }
+  }, [isLoading, currentUser, router]);
+
+  if (isLoading || !currentUser) {
     return (
         <div className="flex min-h-screen w-full bg-background">
            {!isMobile && (
@@ -58,17 +67,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!currentUser && !isLoading) {
-    if (typeof window !== 'undefined') {
-        window.location.href = '/landing';
-    }
-    return (
-        <div className="flex min-h-screen w-full bg-background items-center justify-center">
-            <p>Redirecting...</p>
-        </div>
-    );
-  }
-
 
   return (
       <UserContext.Provider value={{ currentUser }}>
@@ -90,11 +88,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // The (auth) group routes will now handle their own layout and providers.
   if (pathname.startsWith('/signin') || pathname.startsWith('/signup') || pathname.startsWith('/landing')) {
     return (
-        <FirebaseClientProvider>
-          <LanguageProvider>{children}</LanguageProvider>
-        </FirebaseClientProvider>
+      <FirebaseClientProvider>
+        <LanguageProvider>{children}</LanguageProvider>
+      </FirebaseClientProvider>
     );
   }
   

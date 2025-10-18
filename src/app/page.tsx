@@ -8,8 +8,8 @@ export default function WelcomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // The main layout now redirects to dashboard if a user is found,
-    // so this page primarily acts as a fallback or can redirect to the landing page.
+    // The main app layout now handles redirection for authenticated users.
+    // This page's primary role is to redirect any root access to the landing page.
     router.replace('/landing');
   }, [router]);
 

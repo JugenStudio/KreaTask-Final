@@ -8,11 +8,9 @@ import { getTaskSuggestion } from "@/ai/flows/generate-tasks-flow";
 import { z } from "zod";
 import type { Task, User } from "@/lib/types";
 
-// Keep existing AI-related server actions...
-// ...
-
 // This file is now primarily for AI and other non-DB server actions.
 // All database operations have been moved to src/app/actions/db.ts
+export * from './actions/db';
 
 export async function getSummary(formData: FormData) {
   try {
@@ -97,7 +95,3 @@ export async function getTaskFromAI(idea: string, users: User[]) {
     return { suggestion: null, error: "submit.toast.ai_error_generic" };
   }
 }
-
-export * from './actions/db';
-
-    

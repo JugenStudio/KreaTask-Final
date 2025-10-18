@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -9,19 +8,17 @@ import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth } from '@/firebase/client-provider';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { User } from '@/lib/types';
-import { UserRole } from '@/lib/types';
 import { useLanguage } from '@/providers/language-provider';
+import { ensureUserDoc } from '@/lib/ensureUserDoc';
+import { createUser } from '@/app/actions/db';
 
 export default function SignInPage() {
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -74,49 +71,44 @@ export default function SignInPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    if (!auth || !firestore) return;
+  const handleGoogleSignIn = () => {
+    if (!auth) return;
+    
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
 
-      const userDocRef = doc(firestore, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        const newUser: User = {
-          id: user.uid,
-          name: user.displayName || 'Google User',
-          email: user.email || '',
-          avatarUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`,
-          role: UserRole.UNASSIGNED,
-          jabatan: 'Unassigned',
-        };
-        await setDoc(userDocRef, newUser);
-      }
-      toast({
-        title: "Login Google Berhasil",
-        description: `Selamat datang, ${user.displayName}!`,
+    signInWithPopup(auth, provider)
+      .then(async (result) => {
+        const user = result.user;
+        // This will create a user doc in our DB if it doesn't exist.
+        await ensureUserDoc(user);
+        
+        toast({
+          title: t('signin.google_success_title'),
+          description: t('signin.google_success_desc', { name: user.displayName || 'User' }),
+        });
+        router.push('/dashboard');
+      })
+      .catch((error: any) => {
+        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+          console.error("Google sign-in error:", error);
+          let description = "Terjadi kesalahan saat login dengan Google.";
+          if (error.code === 'auth/popup-blocked') {
+            description = "Browser Anda memblokir popup login. Harap izinkan popup untuk situs ini dan coba lagi.";
+          }
+          toast({
+              variant: "destructive",
+              title: "Login Google Gagal",
+              description: description,
+          });
+        }
+      })
+      .finally(() => {
+        setIsGoogleLoading(false);
       });
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error("Google sign-in error:", error);
-      let errorMessage = "Terjadi kesalahan saat login dengan Google.";
-       if (error.code === 'auth/popup-blocked') {
-        errorMessage = 'Popup login Google diblokir oleh browser. Harap izinkan popup untuk situs ini.';
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Anda menutup jendela login Google sebelum selesai.';
-      }
-      toast({
-        variant: "destructive",
-        title: "Login Google Gagal",
-        description: errorMessage,
-      });
-    } finally {
-      setIsGoogleLoading(false);
-    }
   };
 
   return (

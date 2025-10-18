@@ -17,6 +17,9 @@ import {
     createNotification,
     updateNotifications as updateNotificationsInDb,
 } from '@/app/actions/db';
+import { useAuth } from '@/firebase/client-provider';
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+
 
 type DownloadItem = {
   id: number;
@@ -96,37 +99,51 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     const [users, setUsers] = useState<User[]>([]);
     const [currentUserData, setCurrentUserData] = useState<User | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const auth = useAuth();
     
-    // Using a hardcoded mock user for now. This should be replaced with real auth.
-    const mockUserId = 'user-1';
-
     useEffect(() => {
-        async function loadData() {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
             setIsLoading(true);
-            try {
-                const fetchedUsers = await fetchAllUsers();
-                setUsers(fetchedUsers);
+            if (firebaseUser) {
+                try {
+                    const fetchedUsers = await fetchAllUsers();
+                    setUsers(fetchedUsers);
 
-                const currentUser = fetchedUsers.find(u => u.id === mockUserId) || null;
-                setCurrentUserData(currentUser);
+                    const currentUser = fetchedUsers.find(u => u.id === firebaseUser.uid) || null;
+                    setCurrentUserData(currentUser);
 
-                if (currentUser) {
-                    const [fetchedTasks, fetchedNotifications] = await Promise.all([
-                        fetchTasksForUser(currentUser.id, currentUser.role),
-                        fetchNotificationsForUser(currentUser.id),
-                    ]);
-                    setAllTasks(fetchedTasks);
-                    setNotifications(fetchedNotifications);
+                    if (currentUser) {
+                        const [fetchedTasks, fetchedNotifications] = await Promise.all([
+                            fetchTasksForUser(currentUser.id, currentUser.role),
+                            fetchNotificationsForUser(currentUser.id),
+                        ]);
+                        setAllTasks(fetchedTasks);
+                        setNotifications(fetchedNotifications);
+                    } else {
+                        // This case can happen if the user doc is not yet created in Firestore.
+                        // We might redirect or show a message. For now, we clear data.
+                        setAllTasks([]);
+                        setNotifications([]);
+                        setCurrentUserData(null);
+                    }
+                } catch (error) {
+                    console.error("Failed to load user-specific data:", error);
+                    setAllTasks([]);
+                    setNotifications([]);
+                    setCurrentUserData(null);
                 }
-            } catch (error) {
-                console.error("Failed to load initial data:", error);
-            } finally {
-                setIsLoading(false);
+            } else {
+                // No user is signed in
+                setCurrentUserData(null);
+                setAllTasks([]);
+                setUsers([]);
+                setNotifications([]);
             }
-        }
+            setIsLoading(false);
+        });
 
-        loadData();
-    }, []);
+        return () => unsubscribe();
+    }, [auth]);
 
     const [downloadHistory, setDownloadHistory] = useState<DownloadItem[]>([]);
     
@@ -268,5 +285,3 @@ export const useTaskData = () => {
     }
     return context;
 };
-
-    

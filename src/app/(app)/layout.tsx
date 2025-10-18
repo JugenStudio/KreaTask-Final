@@ -9,11 +9,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, createContext, useContext, ReactNode } from "react";
 import type { User } from "@/lib/types";
-import { UserRole } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BottomNav } from "@/components/bottom-nav";
 import { TaskDataProvider, useTaskData } from "@/hooks/use-task-data";
 import { useSpotlightEffect } from "@/hooks/use-spotlight";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 // 1. Create the context
 const UserContext = createContext<{ currentUser: User | null }>({
@@ -23,12 +23,10 @@ const UserContext = createContext<{ currentUser: User | null }>({
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { currentUserData, isLoading: isTaskDataLoading } = useTaskData();
   const isMobile = useIsMobile();
-  const pathname = usePathname();
   useSpotlightEffect();
   
   const currentUser = currentUserData;
 
-  // The main loading state now only depends on the user loading process
   const isLoading = isTaskDataLoading;
 
   if (isLoading) {
@@ -60,11 +58,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // If there's no user and it's not loading, redirect to landing
   if (!currentUser && !isLoading) {
-    // This can be a simple redirect component or a direct router.push
-    // For simplicity, we use a client-side redirect.
-    // In a real app, middleware would be a better choice.
     if (typeof window !== 'undefined') {
         window.location.href = '/landing';
     }
@@ -97,19 +91,24 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   if (pathname.startsWith('/signin') || pathname.startsWith('/signup') || pathname.startsWith('/landing')) {
-    return <LanguageProvider>{children}</LanguageProvider>;
+    return (
+        <FirebaseClientProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </FirebaseClientProvider>
+    );
   }
   
   return (
+    <FirebaseClientProvider>
       <LanguageProvider>
         <TaskDataProvider>
           <AppLayoutContent>{children}</AppLayoutContent>
         </TaskDataProvider>
       </LanguageProvider>
+    </FirebaseClientProvider>
   );
 }
 
-// 2. Create a custom hook to use the context
 export const useCurrentUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
@@ -117,5 +116,3 @@ export const useCurrentUser = () => {
   }
   return context;
 };
-
-    

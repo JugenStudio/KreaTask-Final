@@ -1,38 +1,31 @@
 
-import { doc, getDoc, setDoc, Firestore } from "firebase/firestore";
+'use server';
+
 import type { User as FirebaseUser } from "firebase/auth";
 import type { User } from "./types";
 import { UserRole } from "./types";
+import { getUser, createUser } from "@/app/actions/db";
 
 /**
- * Memastikan dokumen user sudah ada di koleksi "users".
- * Jika belum ada, otomatis membuat dengan data default.
- * @param firestore Instance dari Firestore.
- * @param user Objek pengguna dari Firebase Auth.
- * @param defaultRole Peran default untuk pengguna baru.
- * @returns Promise yang resolve ke DocumentReference dari dokumen pengguna.
+ * Ensures a user document exists in our database.
+ * If it doesn't exist, it creates one with default values.
+ * This is a server action.
+ * @param firebaseUser The user object from Firebase Auth.
  */
-export async function ensureUserDoc(
-  firestore: Firestore,
-  user: FirebaseUser,
-  defaultRole: UserRole = UserRole.UNASSIGNED
-) {
-  const userRef = doc(firestore, "users", user.uid);
-  const snap = await getDoc(userRef);
+export async function ensureUserDoc(firebaseUser: FirebaseUser) {
+  const existingUser = await getUser(firebaseUser.uid);
 
-  if (!snap.exists()) {
+  if (!existingUser) {
     const newUser: User = {
-      id: user.uid,
-      name: user.displayName || "User Baru",
-      email: user.email || "",
+      id: firebaseUser.uid,
+      name: firebaseUser.displayName || "User Baru",
+      email: firebaseUser.email || "",
       avatarUrl:
-        user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`,
-      role: defaultRole,
+        firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
+      role: UserRole.UNASSIGNED,
       jabatan: "Unassigned",
     };
 
-    await setDoc(userRef, newUser);
+    await createUser(newUser);
   }
-
-  return userRef;
 }

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -9,14 +8,19 @@ import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock, User as UserIcon, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
-import { useAuth, useFirestore } from '@/firebase';
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { useAuth } from '@/firebase/client-provider';
+import { 
+    createUserWithEmailAndPassword, 
+    updateProfile, 
+    GoogleAuthProvider, 
+    signInWithPopup,
+    fetchSignInMethodsForEmail 
+} from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { UserRole, type User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { useLanguage } from '@/providers/language-provider';
+import { ensureUserDoc } from '@/lib/ensureUserDoc';
 
 const signupSchema = z.object({
     name: z.string().min(1, "Nama lengkap diperlukan"),
@@ -31,7 +35,6 @@ const signupSchema = z.object({
 export default function SignUpPage() {
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -48,8 +51,8 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !firestore) {
-      setErrors({ form: "Layanan autentikasi atau database tidak tersedia." });
+    if (!auth) {
+      setErrors({ form: "Layanan autentikasi tidak tersedia." });
       return;
     }
 
@@ -68,6 +71,11 @@ export default function SignUpPage() {
     setErrors({});
 
     try {
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (methods.length > 0) {
+        throw { code: 'auth/email-already-in-use' };
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
@@ -76,18 +84,9 @@ export default function SignUpPage() {
         photoURL: `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
       });
 
-      const newUser: User = {
-        id: firebaseUser.uid,
-        name: name,
-        email: email,
-        avatarUrl: `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
-        role: UserRole.UNASSIGNED,
-        jabatan: 'Unassigned',
-      };
+      // Create the user document in our own DB via server action
+      await ensureUserDoc(firebaseUser);
       
-      const userDocRef = doc(firestore, 'users', firebaseUser.uid);
-      await setDoc(userDocRef, newUser);
-
       toast({
         title: "Pendaftaran Berhasil",
         description: "Akun Anda telah dibuat. Selamat datang di KreaTask!",
@@ -111,51 +110,47 @@ export default function SignUpPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    if (!auth || !firestore) return;
+  const handleGoogleSignUp = () => {
+    if (!auth) return;
+    
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+    provider.setCustomParameters({
+        prompt: 'select_account'
+    });
 
-      const userDocRef = doc(firestore, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
+    signInWithPopup(auth, provider)
+      .then(async (result) => {
+        const user = result.user;
+        
+        // This will create a user doc in our DB if it doesn't exist.
+        await ensureUserDoc(user);
 
-      if (!userDoc.exists()) {
-        const newUser: User = {
-          id: user.uid,
-          name: user.displayName || 'Google User',
-          email: user.email || '',
-          avatarUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`,
-          role: UserRole.UNASSIGNED,
-          jabatan: 'Unassigned',
-        };
-        await setDoc(userDocRef, newUser);
-      }
-      toast({
-        title: "Login Google Berhasil",
-        description: `Selamat datang, ${user.displayName}!`,
+        toast({
+            title: t('signup.google_success_title'),
+            description: t('signup.google_success_desc', { name: user.displayName || 'User' }),
+        });
+        
+        router.push('/dashboard');
+      })
+      .catch((error: any) => {
+        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+          console.error("Google sign-up error:", error);
+          let description = "Terjadi kesalahan saat mendaftar dengan Google.";
+           if (error.code === 'auth/popup-blocked') {
+            description = "Browser Anda memblokir popup login. Harap izinkan popup untuk situs ini dan coba lagi.";
+          }
+          toast({
+              variant: "destructive",
+              title: "Pendaftaran Google Gagal",
+              description: description,
+          });
+        }
+      })
+      .finally(() => {
+        setIsGoogleLoading(false);
       });
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error("Google sign-in error:", error);
-      let errorMessage = "Terjadi kesalahan saat mendaftar dengan Google.";
-      if (error.code === 'auth/popup-blocked') {
-        errorMessage = 'Popup login Google diblokir oleh browser. Harap izinkan popup untuk situs ini.';
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Anda menutup jendela login Google sebelum selesai.';
-      }
-      toast({
-        variant: "destructive",
-        title: "Pendaftaran Google Gagal",
-        description: errorMessage,
-      });
-    } finally {
-      setIsGoogleLoading(false);
-    }
   };
-
 
   return (
     <div className="w-full max-w-sm mx-auto flex flex-col items-center">
@@ -261,7 +256,7 @@ export default function SignUpPage() {
                         type="button"
                         variant="outline"
                         className="w-full h-12 bg-background/50 border-white/20 hover:bg-background/80"
-                        onClick={handleGoogleSignIn}
+                        onClick={handleGoogleSignUp}
                         disabled={isLoading || isGoogleLoading}
                     >
                         {isGoogleLoading ? (

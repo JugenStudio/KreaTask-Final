@@ -9,7 +9,7 @@ export default function WelcomePage() {
 
   useEffect(() => {
     // The main layout now redirects to dashboard if a user is found,
-    // so this page primarily acts as a fallback or can redirect to signin.
+    // so this page primarily acts as a fallback or can redirect to the landing page.
     router.replace('/landing');
   }, [router]);
 

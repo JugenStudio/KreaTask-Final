@@ -7,6 +7,19 @@ import { UserRole } from '@/lib/types';
 import { isEmployee } from '@/lib/roles';
 
 // Fetch Actions
+export async function getUser(userId: string): Promise<User | null> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+    return user as User | null;
+  } catch (error) {
+    console.error(`Error fetching user ${userId}:`, error);
+    return null;
+  }
+}
+
+
 export async function fetchTasksForUser(userId: string, role: UserRole): Promise<Task[]> {
   try {
     let whereClause = {};
@@ -71,6 +84,23 @@ export async function fetchNotificationsForUser(userId: string): Promise<Notific
 
 
 // Mutation Actions
+
+export async function createUser(userData: User): Promise<User | null> {
+  try {
+    const newUser = await prisma.user.create({
+      data: {
+        ...userData,
+        // Prisma will handle role enum conversion
+        role: userData.role as any,
+      },
+    });
+    return newUser as User;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return null;
+  }
+}
+
 export async function createTask(taskData: Partial<Task>): Promise<Task | null> {
   const { assignees, ...rest } = taskData;
   try {
@@ -175,5 +205,3 @@ export async function updateNotifications(notificationIds: string[]) {
     return { success: false, error: "Failed to update notifications" };
   }
 }
-
-    

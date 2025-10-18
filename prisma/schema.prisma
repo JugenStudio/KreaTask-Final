@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "wasm"
 }
 
 datasource db {
@@ -17,59 +18,37 @@ model User {
   avatarUrl String?
   role      UserRole @default(Unassigned)
   jabatan   String?
-  tasks     Task[]
+  tasks     Task[]   @relation("TaskAssignees")
 }
 
 model Task {
   id            String       @id @default(cuid())
-  titleEn       String
-  titleId       String
-  descriptionEn String?
-  descriptionId String?
-  status        String
+  title         Json
+  description   Json
+  status        TaskStatus
+  assignees     User[]       @relation("TaskAssignees")
   dueDate       DateTime
+  revisions     Json[]
+  comments      Json[]
+  files         Json[]
+  subtasks      Json[]
   createdAt     DateTime     @default(now())
-  category      String
-  value         Int
+  category      TaskCategory
   valueCategory String
+  value         Int
   evaluator     String
   approvedBy    String?
-  assignees     User[]
-  revisions     Revision[]
-  comments      Comment[]
-  files         FileAsset[]
 }
 
-model Revision {
+model Notification {
   id        String   @id @default(cuid())
-  timestamp DateTime
-  authorId  String
-  changeEn  String
-  changeId  String
-  task      Task     @relation(fields: [taskId], references: [id])
-  taskId    String
-}
-
-model Comment {
-  id         String   @id @default(cuid())
-  timestamp  DateTime
-  authorId   String
-  contentEn  String
-  contentId  String
-  isPinned   Boolean
-  task       Task     @relation(fields: [taskId], references: [id])
-  taskId     String
-}
-
-model FileAsset {
-  id      String  @id @default(cuid())
-  name    String
-  type    String
-  url     String
-  size    String
-  note    String?
-  task    Task    @relation(fields: [taskId], references: [id])
-  taskId  String
+  userId    String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  link      String?
+  taskId    String?
+  createdAt DateTime @default(now())
 }
 
 enum UserRole {
@@ -82,4 +61,19 @@ enum UserRole {
   Marketing
   Finance
   Unassigned
+}
+
+enum TaskCategory {
+  Low
+  Medium
+  High
+  Critical
+}
+
+enum TaskStatus {
+  To_do
+  In_Progress
+  In_Review
+  Completed
+  Blocked
 }

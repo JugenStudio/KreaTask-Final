@@ -1,4 +1,3 @@
-
 import { PrismaClient } from '@prisma/client';
 import { initialUsers, initialTasks } from '../src/lib/data';
 import type { Task, User } from '../src/lib/types';
@@ -12,7 +11,7 @@ async function main() {
   // Using `upsert` to avoid creating duplicate users on subsequent runs.
   for (const u of initialUsers) {
     const user = await prisma.user.upsert({
-      where: { id: u.id },
+      where: { email: u.email },
       update: {},
       create: {
         id: u.id,
